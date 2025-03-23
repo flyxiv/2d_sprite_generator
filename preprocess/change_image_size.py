@@ -15,7 +15,26 @@ DIFFUSION_IMG_SIZE = (512, 512)
 TRANSPARENT_COLOR = (255, 255, 255, 255)
 
 
-def pad_image_to_diffusion_input_size(img_dir, output_dir):
+def _preprocess_image_to_correct_size(img):
+    # if image's width and height are both smaller than wanted output size -> create blank image with correct size and paste image to center
+    if img.width <= DIFFUSION_IMG_SIZE[0] and img.height <= DIFFUSION_IMG_SIZE[1]:
+        new_img_with_correct_size = Image.new(
+            'RGBA', DIFFUSION_IMG_SIZE, TRANSPARENT_COLOR)
+
+        new_img_center_x = int(DIFFUSION_IMG_SIZE[0] / 2 - img.width / 2)
+        new_img_center_y = int(DIFFUSION_IMG_SIZE[1] / 2 - img.height / 2)
+
+        new_img_with_correct_size.paste(
+            im=img, box=(new_img_center_x, new_img_center_y)
+        )
+
+        return new_img_with_correct_size
+    else:
+        img.resize(DIFFUSION_IMG_SIZE)
+        return img
+
+
+def pad_images_to_diffusion_input_size(img_dir, output_dir):
     img_dir_path = Path(img_dir)
     imgs = img_dir_path.glob('**/*')
 
@@ -28,15 +47,7 @@ def pad_image_to_diffusion_input_size(img_dir, output_dir):
         if img.mode != 'RGBA':
             img = img.convert('RGBA')
 
-        new_img_with_correct_size = Image.new(
-            'RGBA', DIFFUSION_IMG_SIZE, TRANSPARENT_COLOR)
-
-        new_img_center_x = int(DIFFUSION_IMG_SIZE[0] / 2 - img.width / 2)
-        new_img_center_y = int(DIFFUSION_IMG_SIZE[1] / 2 - img.height / 2)
-
-        new_img_with_correct_size.paste(
-            im=img, box=(new_img_center_x, new_img_center_y)
-        )
+        new_img_with_correct_size = _preprocess_image_to_correct_size(img)
 
         output_path = os.path.join(output_dir, img_name)
         new_img_with_correct_size.save(output_path, 'PNG')
@@ -51,5 +62,5 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    pad_image_to_diffusion_input_size(
+    pad_images_to_diffusion_input_size(
         img_dir=args.img_dir, output_dir=args.output_dir)
